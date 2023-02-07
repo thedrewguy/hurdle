@@ -18,7 +18,7 @@ const colors = {
 const answerLetterCounts = countLetters(answerWords);
 
 const guesses = [];
-
+let guessValid = true;
 let win = false;
 while (!win) {
   win = loop();
@@ -29,21 +29,31 @@ console.log('\nyou win');
 console.log(`${guesses.length} guesses`);
 
 function loop() {
-  console.log('');
+  console.clear();
+  if (!guessValid) {
+    console.log(chalk.red('enter a real word loser'));
+    console.log('');
+    guessValid = true;
+  }
+
   printKeyboard();
   console.log('');
   guesses.forEach(guess => printGuess(guess));
 
   const guess = getGuess();
   if (!guess) {
-    console.log('enter a real word loser');
+    guessValid = false;
     return;
   }
   guesses.push(guess);
-  if (guess.coloring.every(color => color === colors.green)) {
+  if (isAllGreen(guess.coloring)) {
     return true;
   }
   return false;
+}
+
+function isAllGreen(coloring) {
+  return coloring.every(color => color === colors.green);
 }
 
 function printKeyboard() {
@@ -85,7 +95,7 @@ function printKeyboard() {
         return;
       }
       if (letterColor === colors.orange) {
-        rowString += chalk.orange(letter);
+        rowString += chalk.rgb(255, 172, 28)(letter);
         return;
       }
       if (letterColor === colors.grey) {
@@ -142,6 +152,9 @@ function chooseColoring(validAnswers, nextGuess) {
   const coloringCounts = {};
   answerColorings.forEach(({ coloringString }) => {
     coloringCounts[coloringString] = (coloringCounts[coloringString] ?? 0) + 1;
+    if (isAllGreen(JSON.parse(coloringString))) {
+      coloringCounts[coloringString] = -1;
+    }
   });
   const commonestColoring = JSON.parse(
     Object.entries(coloringCounts).sort((a, b) => b[1] - a[1])[0][0]
