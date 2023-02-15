@@ -13,6 +13,21 @@ const colors = {
   green: 'green',
   orange: 'orange',
   grey: 'grey',
+  white: 'white',
+};
+
+const colorPrint = {
+  [colors.green]: chalk.rgb(0, 255, 0),
+  [colors.orange]: chalk.rgb(255, 172, 28),
+  [colors.grey]: chalk.white,
+  [colors.white]: chalk.whiteBright,
+};
+
+const colorRank = {
+  [colors.green]: 4,
+  [colors.orange]: 3,
+  [colors.grey]: 2,
+  [colors.white]: 1,
 };
 
 const answerLetterCounts = countLetters(answerWords);
@@ -24,14 +39,13 @@ while (!win) {
   win = loop();
 }
 console.log('');
-guesses.forEach(guess => printGuess(guess));
 console.log('\nyou win');
 console.log(`${guesses.length} guesses`);
 
 function loop() {
   console.clear();
   if (!guessValid) {
-    console.log(chalk.red('enter a real word loser'));
+    console.log(chalk.redBright('enter a real word loser'));
     console.log('');
     guessValid = true;
   }
@@ -40,16 +54,18 @@ function loop() {
   console.log('');
   guesses.forEach(guess => printGuess(guess));
 
+  const lastGuess = guesses[guesses.length - 1];
+  if (lastGuess && isAllGreen(lastGuess.coloring)) {
+    return true;
+  }
+
   const guess = getGuess();
   if (!guess) {
     guessValid = false;
     return;
   }
+
   guesses.push(guess);
-  if (isAllGreen(guess.coloring)) {
-    return true;
-  }
-  return false;
 }
 
 function isAllGreen(coloring) {
@@ -57,6 +73,18 @@ function isAllGreen(coloring) {
 }
 
 function printKeyboard() {
+  const keyboardColoring = defaultLetterMap(() => colors.white);
+
+  guesses.forEach(guess => {
+    guess.word.split('').forEach((guessLetter, index) => {
+      const currentColor = keyboardColoring.get(guessLetter);
+      const guessLetterColor = guess.coloring[index];
+      if (colorRank[guessLetterColor] > colorRank[currentColor]) {
+        keyboardColoring.set(guessLetter, guessLetterColor);
+      }
+    });
+  });
+
   const rows = [
     'QWERTYUIOP'.split(''),
     'ASDFGHJKL'.split(''),
@@ -65,44 +93,8 @@ function printKeyboard() {
   rows.forEach(row => {
     let rowString = '';
     row.forEach(letter => {
-      let letterColor = undefined;
-      guesses.forEach(guess => {
-        guess.word.split('').forEach((guessLetter, index) => {
-          if (guessLetter !== letter) {
-            return;
-          }
-          if (letterColor === colors.green) {
-            return;
-          }
-          if (guess.coloring[index] === colors.green) {
-            letterColor = colors.green;
-            return;
-          }
-          if (letterColor === colors.orange) {
-            return;
-          }
-          if (guess.coloring[index] === colors.orange) {
-            letterColor = colors.orange;
-            return;
-          }
-          if (guess.coloring[index] === colors.grey) {
-            letterColor = colors.grey;
-          }
-        });
-      });
-      if (letterColor === colors.green) {
-        rowString += chalk.green(letter);
-        return;
-      }
-      if (letterColor === colors.orange) {
-        rowString += chalk.rgb(255, 172, 28)(letter);
-        return;
-      }
-      if (letterColor === colors.grey) {
-        rowString += chalk.red(letter);
-        return;
-      }
-      rowString += letter;
+      const letterColor = keyboardColoring.get(letter);
+      rowString += colorPrint[letterColor](letter);
     });
     console.log(rowString);
   });
@@ -112,15 +104,7 @@ function printGuess(guess) {
   const word = guess.word;
   let toPrint = '';
   word.split('').forEach((letter, index) => {
-    if (guess.coloring[index] === colors.green) {
-      toPrint += chalk.green(letter);
-      return;
-    }
-    if (guess.coloring[index] === colors.orange) {
-      toPrint += chalk.rgb(255, 172, 28)(letter);
-      return;
-    }
-    toPrint += letter;
+    toPrint += colorPrint[guess.coloring[index]](letter);
   });
   console.log(toPrint);
 }
@@ -248,12 +232,12 @@ function countLetters(wordList) {
 }
 
 function defaultLetterMap(getDefault) {
-  const constraints = new Map();
+  const letterMap = new Map();
   const aCode = 65;
   for (let i = 0; i < 26; i++) {
-    constraints.set(String.fromCharCode(aCode + i), getDefault());
+    letterMap.set(String.fromCharCode(aCode + i), getDefault());
   }
-  return constraints;
+  return letterMap;
 }
 
 function getLetterColorCounts(guess) {
